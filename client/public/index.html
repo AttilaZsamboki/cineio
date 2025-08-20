@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="A multiplayer agar.io-style game for movie enthusiasts"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <title>🎬 Cinephile Agar</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script>
+      // Suppress ResizeObserver errors
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('ResizeObserver loop completed')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return false;
+        }
+      });
+      
+      // Also suppress console errors for ResizeObserver
+      const originalError = console.error;
+      console.error = function(...args) {
+        if (args[0] && args[0].toString().includes('ResizeObserver')) {
+          return;
+        }
+        originalError.apply(console, args);
+      };
+    </script>
+  </body>
+</html>
