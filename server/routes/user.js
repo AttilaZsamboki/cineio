@@ -10,44 +10,132 @@ const router = express.Router();
 // Configure multer for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Import Letterboxd data from CSV
+// Import Letterboxd Watchlist from CSV
+router.post('/import-letterboxd-watchlist', auth, upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const allWatched = [];
+    const filePath = req.file.path;
+
+    // Parse CSV file (Letterboxd watchlist export typically includes: Name, Year, Letterboxd URI)
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => {
+        const title = row.Name || row.Title || row.name || row.title;
+        const year = parseInt(row.Year || row.year || row.Released_Year || row.released_year);
+        const uri = row['Letterboxd URI'] || row['Letterboxd Url'] || row.letterboxdUrl || row.url;
+        if (title && year) {
+          allWatched.push({
+            title,
+            year,
+            letterboxdUrl: uri || undefined,
+            rating: 1
+          });
+        }
+      })
+      .on('end', async () => {
+        try {
+          const user = await User.findById(req.userId);
+
+          // Deduplicate by title-year and replace existing watchlistMovies
+          const seen = new Set();
+          const deduped = [];
+          for (const m of allWatched) {
+            const key = `${m.title}-${m.year}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(m);
+          }
+
+          user.watchlistMovies = deduped;
+          await user.save();
+
+          fs.unlinkSync(filePath);
+
+          res.json({
+            message: `Successfully imported ${deduped.length} watchlist movies`,
+            movieCount: deduped.length,
+            movies: deduped.slice(0, 10)
+          });
+        } catch (error) {
+          console.error('Database update error (watchlist import):', error);
+          fs.unlinkSync(filePath);
+          res.status(500).json({ message: 'Error updating user watchlist' });
+        }
+      })
+      .on('error', (error) => {
+        console.error('CSV parsing error (watchlist):', error);
+        fs.unlinkSync(filePath);
+        res.status(400).json({ message: 'Error parsing CSV file' });
+      });
+  } catch (error) {
+    console.error('Import watchlist error:', error);
+    res.status(500).json({ message: 'Server error during watchlist import' });
+  }
+});
+
+// Import Letterboxd data from CSV (ratings/diary export)
 router.post('/import-letterboxd', auth, upload.single('csvFile'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No CSV file uploaded' });
     }
 
-    const movies = [];
+    const allWatched = [];
     const filePath = req.file.path;
 
     // Parse CSV file
     fs.createReadStream(filePath)
       .pipe(csv())
       .on('data', (row) => {
-        // Letterboxd CSV format: Name, Year, Letterboxd URI, Rating
-        if (row.Rating === '5') { // Only import 5-star movies
-          movies.push({
-            title: row.Name,
-            year: parseInt(row.Year),
-            letterboxdUrl: row['Letterboxd URI'],
-            rating: 5
+        // Letterboxd CSV format commonly includes: Name, Year, Letterboxd URI, Rating (may be empty)
+        const title = row.Name || row.Title || row.name || row.title;
+        const year = parseInt(row.Year || row.year || row.Released_Year || row.released_year);
+        const uri = row['Letterboxd URI'] || row['Letterboxd Url'] || row.letterboxdUrl || row.url;
+        // Normalize rating to 1..5, default to 1 when missing/unrated so we still keep as watched
+        let ratingNum = parseFloat(row.Rating || row.rating);
+        if (!(ratingNum >= 1 && ratingNum <= 5)) ratingNum = 1;
+        if (title && year) {
+          allWatched.push({
+            title,
+            year,
+            letterboxdUrl: uri || undefined,
+            rating: Math.round(ratingNum)
           });
         }
       })
       .on('end', async () => {
         try {
-          // Update user's 5-star movies
+          // Deduplicate by title-year for watched
+          const seen = new Set();
+          const dedupedWatched = [];
+          for (const m of allWatched) {
+            const key = `${m.title}-${m.year}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            dedupedWatched.push(m);
+          }
+
+          // Derive fiveStar subset
+          const fiveStar = dedupedWatched.filter(m => m.rating === 5);
+
+          // Update user's movies
           const user = await User.findById(req.userId);
-          user.fiveStarMovies = movies;
+          user.watchedMovies = dedupedWatched;
+          user.fiveStarMovies = fiveStar;
           await user.save();
 
           // Clean up uploaded file
           fs.unlinkSync(filePath);
 
           res.json({
-            message: `Successfully imported ${movies.length} five-star movies`,
-            movieCount: movies.length,
-            movies: movies.slice(0, 10) // Return first 10 for preview
+            message: `Imported ${dedupedWatched.length} watched movies (${fiveStar.length} five-star)`,
+            watchedCount: dedupedWatched.length,
+            fiveStarCount: fiveStar.length,
+            sample: dedupedWatched.slice(0, 10)
           });
         } catch (error) {
           console.error('Database update error:', error);
@@ -180,6 +268,53 @@ router.post('/movies', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Add movie error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add movie to watchlist
+router.post('/watchlist-movies', auth, async (req, res) => {
+  try {
+    const { title, year, director } = req.body;
+
+    const user = await User.findById(req.userId);
+    
+    // Check if movie already exists in watchlist
+    const existingMovie = user.watchlistMovies.find(
+      movie => movie.title === title && movie.year === year
+    );
+
+    if (existingMovie) {
+      return res.status(400).json({ message: 'Movie already in your watchlist' });
+    }
+
+    user.watchlistMovies.push({
+      title,
+      year,
+      director,
+      rating: 1 // Default rating for watchlist movies
+    });
+
+    await user.save();
+
+    res.json({
+      message: 'Movie added to watchlist successfully',
+      movie: { title, year, director },
+      totalWatchlistMovies: user.watchlistMovies.length
+    });
+  } catch (error) {
+    console.error('Add watchlist movie error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get user's watchlist movies
+router.get('/watchlist-movies', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    res.json(user.watchlistMovies || []);
+  } catch (error) {
+    console.error('Get watchlist movies error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

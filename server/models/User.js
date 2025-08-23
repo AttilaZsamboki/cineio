@@ -35,6 +35,8 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   fiveStarMovies: [movieSchema],
+  watchedMovies: [movieSchema], // All movies the user has watched (any rating)
+  watchlistMovies: [movieSchema], // Movies user wants to watch
   eloRating: {
     type: Number,
     default: 1200
@@ -92,18 +94,19 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
 
 // Calculate absorption compatibility
 userSchema.methods.canAbsorb = function(targetUser) {
-  const myMovies = new Set(this.fiveStarMovies.map(m => `${m.title}-${m.year}`));
-  const targetMovies = targetUser.fiveStarMovies.map(m => `${m.title}-${m.year}`);
-  
-  // Check if current user has seen ALL of target user's 5-star movies
-  return targetMovies.every(movie => myMovies.has(movie));
+  // Player only needs to have SEEN opponent's 5-star movies; they do not need to be 5-star themselves
+  const seenArray = [...(this.watchedMovies || []), ...(this.fiveStarMovies || [])];
+  const mySeen = new Set(seenArray.map(m => `${m.title}-${m.year}`));
+  const targetFiveStar = (targetUser.fiveStarMovies || []).map(m => `${m.title}-${m.year}`);
+  return targetFiveStar.every(movie => mySeen.has(movie));
 };
 
 // Get missing movies for absorption
 userSchema.methods.getMissingMovies = function(targetUser) {
-  const myMovies = new Set(this.fiveStarMovies.map(m => `${m.title}-${m.year}`));
-  return targetUser.fiveStarMovies.filter(movie => 
-    !myMovies.has(`${movie.title}-${movie.year}`)
+  const seenArray = [...(this.watchedMovies || []), ...(this.fiveStarMovies || [])];
+  const mySeen = new Set(seenArray.map(m => `${m.title}-${m.year}`));
+  return (targetUser.fiveStarMovies || []).filter(movie => 
+    !mySeen.has(`${movie.title}-${movie.year}`)
   );
 };
 

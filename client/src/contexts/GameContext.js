@@ -19,10 +19,13 @@ export const GameProvider = ({ children }) => {
     sessionId: null,
     players: [],
     currentPlayer: null,
-    worldSize: { width: 2000, height: 2000 },
+    movieOrbs: [],
+    worldSize: { width: 1000, height: 1000 },
     settings: {}
   });
-  const [absorptionAttempt, setAbsorptionAttempt] = useState(null);
+  const [battleHaltUntilTs, setBattleHaltUntilTs] = useState(0);
+  const shownToastKeysRef = React.useRef(new Map()); // key -> expiryTs
+  // Touch-to-absorb: no client-side absorption attempt state needed
 
   useEffect(() => {
     // Initialize socket connection
@@ -40,11 +43,11 @@ export const GameProvider = ({ children }) => {
 
     // Game event listeners
     newSocket.on('game-joined', (data) => {
-      console.log("game-joined", data)
       setGameState(prev => ({
         ...prev,
         sessionId: data.sessionId,
         currentPlayer: data.player,
+        movieOrbs: data.movieOrbs || [],
         worldSize: data.worldSize,
         settings: data.settings
       }));
@@ -72,7 +75,8 @@ export const GameProvider = ({ children }) => {
     newSocket.on('game-state', (data) => {
       setGameState(prev => ({
         ...prev,
-        players: data.players
+        players: data.players,
+        movieOrbs: data.movieOrbs || prev.movieOrbs
       }));
     });
 
@@ -81,34 +85,63 @@ export const GameProvider = ({ children }) => {
         ...prev,
         players: prev.players.map(player => {
           if (player.id === data.absorber.id) {
-            return { ...player, size: data.absorber.newSize, absorptions: data.absorber.absorptions };
+            return { ...player, size: data.absorber.newSize, points: data.absorber.newPoints, absorptions: data.absorber.absorptions };
+          }
+          if (player.id === data.victim.id) {
+            return { ...player, size: data.victim.newSize, points: data.victim.newPoints };
           }
           return player;
-        }).filter(player => player.id !== data.victim.id)
+        })
       }));
-      
-      toast.success(`${data.absorber.username} absorbed ${data.victim.username}!`);
     });
 
     newSocket.on('you-were-absorbed', (data) => {
-      toast.error(`You were absorbed by ${data.absorber}! Survival time: ${Math.round(data.survivalTime / 1000)}s`);
-      setGameState(prev => ({ ...prev, currentPlayer: null }));
+      toast.error(`You lost points to ${data.absorber}! Keep playing!`);
+      // Player stays alive, just loses points
     });
 
     newSocket.on('absorption-successful', (data) => {
-      toast.success(`Successfully absorbed ${data.victim}! New size: ${data.newSize}`);
+      toast.success(`Gained points from ${data.victim}! Size: ${data.newSize}, Points: ${data.newPoints}`);
       setGameState(prev => ({
         ...prev,
-        currentPlayer: prev.currentPlayer ? { ...prev.currentPlayer, size: data.newSize } : null
+        currentPlayer: prev.currentPlayer ? { ...prev.currentPlayer, size: data.newSize, points: data.newPoints } : null
       }));
     });
 
-    newSocket.on('absorption-failed', (data) => {
-      toast.error(data.message);
-      if (data.missingMovies) {
-        console.log('Missing movies:', data.missingMovies);
+    // Battle start: briefly halt local movement display
+    const showToastOnce = (key, render, options = {}, ttlMs = 3000) => {
+      const now = Date.now();
+      // cleanup expired
+      for (const [k, exp] of shownToastKeysRef.current.entries()) {
+        if (exp <= now) shownToastKeysRef.current.delete(k);
       }
-      setAbsorptionAttempt(null);
+      if (shownToastKeysRef.current.has(key)) return;
+      shownToastKeysRef.current.set(key, now + ttlMs);
+      return typeof render === 'function' ? toast(render, options) : toast(render, options);
+    };
+
+    newSocket.on('battle-start', (data) => {
+      setBattleHaltUntilTs(data.haltUntil || Date.now() + 600);
+      const key = `battle-start:${data.opponent}`;
+      showToastOnce(key, `Battle started vs ${data.opponent}`, { icon: '⚔️', duration: 800 }, 2000);
+    });
+
+    // Battle encounter where neither can absorb: show missing movies
+    newSocket.on('battle-missing', (data) => {
+      const titles = (data.missingMovies || []).map((m) => {
+        if (typeof m === 'string') return m;
+        if (!m) return '';
+        const title = m.title || m.Name || m.name || '[Unknown]';
+        const year = m.year || m.Year || m.released_year;
+        return year ? `${title} (${year})` : title;
+      }).filter(Boolean);
+      const key = `battle-missing:${data.opponent}:${titles.join('|')}`;
+      showToastOnce(key, () => (
+        <div>
+          <div><strong>Battle stalemate with {data.opponent}</strong></div>
+          <div style={{ maxWidth: 360 }}>Missing 5-star movies: {titles.length ? titles.join(', ') : 'None'}</div>
+        </div>
+      ), { duration: 5000 }, 5000);
     });
 
     newSocket.on('player-disconnected', (data) => {
@@ -127,6 +160,55 @@ export const GameProvider = ({ children }) => {
       toast.error(data.message);
     });
 
+    // Movie orb events
+    newSocket.on('orb-spawned', (orb) => {
+      setGameState(prev => ({
+        ...prev,
+        movieOrbs: [...prev.movieOrbs, orb]
+      }));
+    });
+
+    newSocket.on('orb-consumed', (data) => {
+      // Only show toast for current player to avoid duplicates
+      if (gameState.currentPlayer && data.playerId === gameState.currentPlayer.id) {
+        toast.success(`Consumed ${data.orb.type} orb! +${data.orb.pointValue} points`);
+      }
+      setGameState(prev => ({
+        ...prev,
+        currentPlayer: prev.currentPlayer ? {
+          ...prev.currentPlayer,
+          points: data.newPoints,
+          size: data.newSize
+        } : null
+      }));
+    });
+
+    newSocket.on('orb-removed', (data) => {
+      setGameState(prev => ({
+        ...prev,
+        movieOrbs: prev.movieOrbs.filter(orb => orb.id !== data.orbId)
+      }));
+    });
+
+    newSocket.on('orb-consumption-failed', (data) => {
+      const titles = (data.missingMovies || []).map((m) => {
+        if (typeof m === 'string') return m;
+        if (!m) return '';
+        const title = m.title || m.Name || m.name || '[Unknown]';
+        const year = m.year || m.Year || m.released_year;
+        return year ? `${title} (${year})` : title;
+      }).filter(Boolean);
+      const key = `orb-fail:${data.orb?.id || 'unknown'}:${titles.join('|')}`;
+      showToastOnce(key, (
+        <div>
+          <div><strong>Can't consume orb!</strong></div>
+          <div style={{ maxWidth: 320, fontSize: '12px', marginTop: '4px' }}>
+            Missing: {titles.join(', ')}
+          </div>
+        </div>
+      ), { duration: 4000 }, 3500);
+    });
+
     setSocket(newSocket);
 
     return () => {
@@ -143,28 +225,21 @@ export const GameProvider = ({ children }) => {
   const movePlayer = (x, y) => {
     if (socket && gameState.currentPlayer) {
       socket.emit('player-move', { x, y });
-      // Update local state immediately for smooth movement
-      setGameState(prev => ({
-        ...prev,
-        currentPlayer: {
-          ...prev.currentPlayer,
-          position: { x, y }
-        }
-      }));
+      // Suppress optimistic movement during server-declared battle halt window
+      if (Date.now() >= battleHaltUntilTs) {
+        // Update local state immediately for smooth movement
+        setGameState(prev => ({
+          ...prev,
+          currentPlayer: {
+            ...prev.currentPlayer,
+            position: { x, y }
+          }
+        }));
+      }
     }
   };
 
-  const attemptAbsorption = (targetPlayerId) => {
-    if (socket && !absorptionAttempt) {
-      setAbsorptionAttempt(targetPlayerId);
-      socket.emit('attempt-absorption', { targetPlayerId });
-      
-      // Clear attempt after timeout
-      setTimeout(() => {
-        setAbsorptionAttempt(null);
-      }, 3000);
-    }
-  };
+  // Click-to-absorb removed; absorption happens automatically on touch (server-side)
 
   const leaveGame = () => {
     if (socket) {
@@ -184,10 +259,8 @@ export const GameProvider = ({ children }) => {
   const value = {
     socket,
     gameState,
-    absorptionAttempt,
     joinGame,
     movePlayer,
-    attemptAbsorption,
     leaveGame
   };
 
