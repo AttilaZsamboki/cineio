@@ -655,7 +655,63 @@ class GameManager {
           } else if (orbType === 'list') {
             movies = sampleK([...all], 8 + Math.floor(Math.random() * 5)); // 8-12
           } else if (orbType === 'boss') {
-            // Choose a popular movie among players (by frequency)
+            // Choose critically acclaimed but lesser-known arthouse films
+            const arthouseFilms = [
+              { title: 'Sátántangó', year: 1994, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/satantango/' },
+              { title: 'Stalker', year: 1979, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/stalker/' },
+              { title: 'Jeanne Dielman, 23, quai du Commerce, 1080 Bruxelles', year: 1975, director: 'Chantal Akerman', letterboxdUrl: 'https://letterboxd.com/film/jeanne-dielman-23-quai-du-commerce-1080-bruxelles/' },
+              { title: 'The Turin Horse', year: 2011, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/the-turin-horse/' },
+              { title: 'Werckmeister Harmonies', year: 2000, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/werckmeister-harmonies/' },
+              { title: 'Solaris', year: 1972, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/solaris-1972/' },
+              { title: 'The Mirror', year: 1975, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/the-mirror/' },
+              { title: 'Andrei Rublev', year: 1966, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/andrei-rublev/' },
+              { title: 'L\'Avventura', year: 1960, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/lavventura/' },
+              { title: 'Persona', year: 1966, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/persona/' },
+              { title: 'Cries and Whispers', year: 1972, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/cries-and-whispers/' },
+              { title: 'The Seventh Seal', year: 1957, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/the-seventh-seal/' },
+              { title: 'Tokyo Story', year: 1953, director: 'Yasujirō Ozu', letterboxdUrl: 'https://letterboxd.com/film/tokyo-story/' },
+              { title: 'Late Spring', year: 1949, director: 'Yasujirō Ozu', letterboxdUrl: 'https://letterboxd.com/film/late-spring/' },
+              { title: 'Au Hasard Balthazar', year: 1966, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/au-hasard-balthazar/' },
+              { title: 'Pickpocket', year: 1959, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/pickpocket/' },
+              { title: 'A Man Escaped', year: 1956, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/a-man-escaped/' },
+              { title: 'Playtime', year: 1967, director: 'Jacques Tati', letterboxdUrl: 'https://letterboxd.com/film/playtime/' },
+              { title: 'The Rules of the Game', year: 1939, director: 'Jean Renoir', letterboxdUrl: 'https://letterboxd.com/film/the-rules-of-the-game/' },
+              { title: 'Ugetsu', year: 1953, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/ugetsu/' },
+              { title: 'Sansho the Bailiff', year: 1954, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/sansho-the-bailiff/' },
+              { title: 'The Story of the Last Chrysanthemum', year: 1939, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/the-story-of-the-last-chrysanthemum/' },
+              { title: 'Chungking Express', year: 1994, director: 'Wong Kar-wai', letterboxdUrl: 'https://letterboxd.com/film/chungking-express/' },
+              { title: 'In the Mood for Love', year: 2000, director: 'Wong Kar-wai', letterboxdUrl: 'https://letterboxd.com/film/in-the-mood-for-love/' },
+              { title: 'Yi Yi', year: 2000, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/yi-yi/' },
+              { title: 'A Brighter Summer Day', year: 1991, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/a-brighter-summer-day/' },
+              { title: 'Taipei Story', year: 1985, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/taipei-story/' },
+              { title: 'The Leopard', year: 1963, director: 'Luchino Visconti', letterboxdUrl: 'https://letterboxd.com/film/the-leopard/' },
+              { title: 'L\'Eclisse', year: 1962, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/leclisse/' },
+              { title: 'Red Desert', year: 1964, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/red-desert/' },
+              { title: 'La Notte', year: 1961, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/la-notte/' },
+              { title: 'Celine and Julie Go Boating', year: 1974, director: 'Jacques Rivette', letterboxdUrl: 'https://letterboxd.com/film/celine-and-julie-go-boating/' },
+              { title: 'Out 1', year: 1971, director: 'Jacques Rivette', letterboxdUrl: 'https://letterboxd.com/film/out-1/' },
+              { title: 'The Mother and the Whore', year: 1973, director: 'Jean Eustache', letterboxdUrl: 'https://letterboxd.com/film/the-mother-and-the-whore/' },
+              { title: 'Tropical Malady', year: 2004, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/tropical-malady/' },
+              { title: 'Uncle Boonmee Who Can Recall His Past Lives', year: 2010, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/uncle-boonmee-who-can-recall-his-past-lives/' },
+              { title: 'Syndromes and a Century', year: 2006, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/syndromes-and-a-century/' },
+              { title: 'Cemetery of Splendour', year: 2015, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/cemetery-of-splendour/' },
+              { title: 'Horse Money', year: 2014, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/horse-money/' },
+              { title: 'Colossal Youth', year: 2006, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/colossal-youth/' },
+              { title: 'In Vanda\'s Room', year: 2000, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/in-vandas-room/' },
+              { title: 'The Death of Mr. Lazarescu', year: 2005, director: 'Cristi Puiu', letterboxdUrl: 'https://letterboxd.com/film/the-death-of-mr-lazarescu/' },
+              { title: '4 Months, 3 Weeks and 2 Days', year: 2007, director: 'Cristian Mungiu', letterboxdUrl: 'https://letterboxd.com/film/4-months-3-weeks-and-2-days/' },
+              { title: 'Police, Adjective', year: 2009, director: 'Corneliu Porumboiu', letterboxdUrl: 'https://letterboxd.com/film/police-adjective/' },
+              { title: 'The Gleaners and I', year: 2000, director: 'Agnès Varda', letterboxdUrl: 'https://letterboxd.com/film/the-gleaners-and-i/' },
+              { title: 'Vagabond', year: 1985, director: 'Agnès Varda', letterboxdUrl: 'https://letterboxd.com/film/vagabond/' },
+              { title: 'Touki Bouki', year: 1973, director: 'Djibril Diop Mambéty', letterboxdUrl: 'https://letterboxd.com/film/touki-bouki/' },
+              { title: 'Wanda', year: 1970, director: 'Barbara Loden', letterboxdUrl: 'https://letterboxd.com/film/wanda/' },
+              { title: 'The Passion of Joan of Arc', year: 1928, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/the-passion-of-joan-of-arc/' },
+              { title: 'Ordet', year: 1955, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/ordet/' },
+              { title: 'Vampyr', year: 1932, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/vampyr/' },
+              { title: 'Gertrud', year: 1964, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/gertrud/' }
+            ];
+            
+            // Filter out arthouse films that players have already seen (to make them truly rare)
             const freq = new Map();
             for (const u of users) {
               const allUserMovies = [...(u.fiveStarMovies || []), ...(u.watchlistMovies || [])];
@@ -664,21 +720,17 @@ class GameManager {
                 freq.set(key, (freq.get(key) || 0) + 1);
               }
             }
-            let bestKey = null, bestCount = 0, bestMovie = null;
-            for (const u of users) {
-              const allUserMovies = [...(u.fiveStarMovies || []), ...(u.watchlistMovies || [])];
-              for (const m of allUserMovies) {
-                const key = `${m.title}-${m.year}`;
-                const count = freq.get(key) || 0;
-                if (count > bestCount) {
-                  bestCount = count;
-                  bestKey = key;
-                  bestMovie = { title: m.title, year: m.year, director: m.director, letterboxdUrl: m.letterboxdUrl, watchCount: count };
-                }
-              }
-            }
-            if (bestMovie) movies = [bestMovie];
-            else movies = sampleK([...all], 1);
+            
+            // Find arthouse films that are least seen by current players (or not seen at all)
+            const unseenArthouse = arthouseFilms.filter(film => {
+              const key = `${film.title}-${film.year}`;
+              return !freq.has(key) || freq.get(key) <= 1; // Completely unseen or seen by only 1 player
+            });
+            
+            // If we have unseen arthouse films, pick one randomly; otherwise pick any arthouse film
+            const candidateFilms = unseenArthouse.length > 0 ? unseenArthouse : arthouseFilms;
+            const randomArthouse = candidateFilms[Math.floor(Math.random() * candidateFilms.length)];
+            movies = [randomArthouse];
           }
         }
 
@@ -749,6 +801,63 @@ class GameManager {
             } else if (orbType === 'list') {
               movies = sampleK([...all], 8 + Math.floor(Math.random() * 5));
             } else if (orbType === 'boss') {
+              // Choose critically acclaimed but lesser-known arthouse films
+              const arthouseFilms = [
+                { title: 'Sátántangó', year: 1994, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/satantango/' },
+                { title: 'Stalker', year: 1979, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/stalker/' },
+                { title: 'Jeanne Dielman, 23, quai du Commerce, 1080 Bruxelles', year: 1975, director: 'Chantal Akerman', letterboxdUrl: 'https://letterboxd.com/film/jeanne-dielman-23-quai-du-commerce-1080-bruxelles/' },
+                { title: 'The Turin Horse', year: 2011, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/the-turin-horse/' },
+                { title: 'Werckmeister Harmonies', year: 2000, director: 'Béla Tarr', letterboxdUrl: 'https://letterboxd.com/film/werckmeister-harmonies/' },
+                { title: 'Solaris', year: 1972, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/solaris-1972/' },
+                { title: 'The Mirror', year: 1975, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/the-mirror/' },
+                { title: 'Andrei Rublev', year: 1966, director: 'Andrei Tarkovsky', letterboxdUrl: 'https://letterboxd.com/film/andrei-rublev/' },
+                { title: 'L\'Avventura', year: 1960, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/lavventura/' },
+                { title: 'Persona', year: 1966, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/persona/' },
+                { title: 'Cries and Whispers', year: 1972, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/cries-and-whispers/' },
+                { title: 'The Seventh Seal', year: 1957, director: 'Ingmar Bergman', letterboxdUrl: 'https://letterboxd.com/film/the-seventh-seal/' },
+                { title: 'Tokyo Story', year: 1953, director: 'Yasujirō Ozu', letterboxdUrl: 'https://letterboxd.com/film/tokyo-story/' },
+                { title: 'Late Spring', year: 1949, director: 'Yasujirō Ozu', letterboxdUrl: 'https://letterboxd.com/film/late-spring/' },
+                { title: 'Au Hasard Balthazar', year: 1966, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/au-hasard-balthazar/' },
+                { title: 'Pickpocket', year: 1959, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/pickpocket/' },
+                { title: 'A Man Escaped', year: 1956, director: 'Robert Bresson', letterboxdUrl: 'https://letterboxd.com/film/a-man-escaped/' },
+                { title: 'Playtime', year: 1967, director: 'Jacques Tati', letterboxdUrl: 'https://letterboxd.com/film/playtime/' },
+                { title: 'The Rules of the Game', year: 1939, director: 'Jean Renoir', letterboxdUrl: 'https://letterboxd.com/film/the-rules-of-the-game/' },
+                { title: 'Ugetsu', year: 1953, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/ugetsu/' },
+                { title: 'Sansho the Bailiff', year: 1954, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/sansho-the-bailiff/' },
+                { title: 'The Story of the Last Chrysanthemum', year: 1939, director: 'Kenji Mizoguchi', letterboxdUrl: 'https://letterboxd.com/film/the-story-of-the-last-chrysanthemum/' },
+                { title: 'Chungking Express', year: 1994, director: 'Wong Kar-wai', letterboxdUrl: 'https://letterboxd.com/film/chungking-express/' },
+                { title: 'In the Mood for Love', year: 2000, director: 'Wong Kar-wai', letterboxdUrl: 'https://letterboxd.com/film/in-the-mood-for-love/' },
+                { title: 'Yi Yi', year: 2000, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/yi-yi/' },
+                { title: 'A Brighter Summer Day', year: 1991, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/a-brighter-summer-day/' },
+                { title: 'Taipei Story', year: 1985, director: 'Edward Yang', letterboxdUrl: 'https://letterboxd.com/film/taipei-story/' },
+                { title: 'The Leopard', year: 1963, director: 'Luchino Visconti', letterboxdUrl: 'https://letterboxd.com/film/the-leopard/' },
+                { title: 'L\'Eclisse', year: 1962, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/leclisse/' },
+                { title: 'Red Desert', year: 1964, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/red-desert/' },
+                { title: 'La Notte', year: 1961, director: 'Michelangelo Antonioni', letterboxdUrl: 'https://letterboxd.com/film/la-notte/' },
+                { title: 'Celine and Julie Go Boating', year: 1974, director: 'Jacques Rivette', letterboxdUrl: 'https://letterboxd.com/film/celine-and-julie-go-boating/' },
+                { title: 'Out 1', year: 1971, director: 'Jacques Rivette', letterboxdUrl: 'https://letterboxd.com/film/out-1/' },
+                { title: 'The Mother and the Whore', year: 1973, director: 'Jean Eustache', letterboxdUrl: 'https://letterboxd.com/film/the-mother-and-the-whore/' },
+                { title: 'Tropical Malady', year: 2004, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/tropical-malady/' },
+                { title: 'Uncle Boonmee Who Can Recall His Past Lives', year: 2010, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/uncle-boonmee-who-can-recall-his-past-lives/' },
+                { title: 'Syndromes and a Century', year: 2006, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/syndromes-and-a-century/' },
+                { title: 'Cemetery of Splendour', year: 2015, director: 'Apichatpong Weerasethakul', letterboxdUrl: 'https://letterboxd.com/film/cemetery-of-splendour/' },
+                { title: 'Horse Money', year: 2014, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/horse-money/' },
+                { title: 'Colossal Youth', year: 2006, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/colossal-youth/' },
+                { title: 'In Vanda\'s Room', year: 2000, director: 'Pedro Costa', letterboxdUrl: 'https://letterboxd.com/film/in-vandas-room/' },
+                { title: 'The Death of Mr. Lazarescu', year: 2005, director: 'Cristi Puiu', letterboxdUrl: 'https://letterboxd.com/film/the-death-of-mr-lazarescu/' },
+                { title: '4 Months, 3 Weeks and 2 Days', year: 2007, director: 'Cristian Mungiu', letterboxdUrl: 'https://letterboxd.com/film/4-months-3-weeks-and-2-days/' },
+                { title: 'Police, Adjective', year: 2009, director: 'Corneliu Porumboiu', letterboxdUrl: 'https://letterboxd.com/film/police-adjective/' },
+                { title: 'The Gleaners and I', year: 2000, director: 'Agnès Varda', letterboxdUrl: 'https://letterboxd.com/film/the-gleaners-and-i/' },
+                { title: 'Vagabond', year: 1985, director: 'Agnès Varda', letterboxdUrl: 'https://letterboxd.com/film/vagabond/' },
+                { title: 'Touki Bouki', year: 1973, director: 'Djibril Diop Mambéty', letterboxdUrl: 'https://letterboxd.com/film/touki-bouki/' },
+                { title: 'Wanda', year: 1970, director: 'Barbara Loden', letterboxdUrl: 'https://letterboxd.com/film/wanda/' },
+                { title: 'The Passion of Joan of Arc', year: 1928, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/the-passion-of-joan-of-arc/' },
+                { title: 'Ordet', year: 1955, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/ordet/' },
+                { title: 'Vampyr', year: 1932, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/vampyr/' },
+                { title: 'Gertrud', year: 1964, director: 'Carl Theodor Dreyer', letterboxdUrl: 'https://letterboxd.com/film/gertrud/' }
+              ];
+              
+              // Filter out arthouse films that players have already seen (to make them truly rare)
               const freq = new Map();
               for (const u of users) {
                 const allUserMovies = [...(u.fiveStarMovies || []), ...(u.watchlistMovies || [])];
@@ -757,19 +866,17 @@ class GameManager {
                   freq.set(key, (freq.get(key) || 0) + 1);
                 }
               }
-              let bestMovie = null, bestCount = 0;
-              for (const u of users) {
-                const allUserMovies = [...(u.fiveStarMovies || []), ...(u.watchlistMovies || [])];
-                for (const m of allUserMovies) {
-                  const key = `${m.title}-${m.year}`;
-                  const count = freq.get(key) || 0;
-                  if (count > bestCount) {
-                    bestCount = count;
-                    bestMovie = { title: m.title, year: m.year, director: m.director, letterboxdUrl: m.letterboxdUrl, watchCount: count };
-                  }
-                }
-              }
-              movies = bestMovie ? [bestMovie] : sampleK([...all], 1);
+              
+              // Find arthouse films that are least seen by current players (or not seen at all)
+              const unseenArthouse = arthouseFilms.filter(film => {
+                const key = `${film.title}-${film.year}`;
+                return !freq.has(key) || freq.get(key) <= 1; // Completely unseen or seen by only 1 player
+              });
+              
+              // If we have unseen arthouse films, pick one randomly; otherwise pick any arthouse film
+              const candidateFilms = unseenArthouse.length > 0 ? unseenArthouse : arthouseFilms;
+              const randomArthouse = candidateFilms[Math.floor(Math.random() * candidateFilms.length)];
+              movies = [randomArthouse];
             }
           }
 

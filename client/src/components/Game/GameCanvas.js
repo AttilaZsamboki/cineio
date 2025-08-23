@@ -106,8 +106,8 @@ const GameCanvas = () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Clear canvas
-    ctx.fillStyle = '#1a1a2e';
+    // Clear canvas with light background
+    ctx.fillStyle = '#f8fafc';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw grid
@@ -191,7 +191,7 @@ const GameCanvas = () => {
 
   const drawGrid = (ctx, canvas) => {
     const gridSize = 50;
-    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.strokeStyle = 'rgba(31, 33, 36, 0.1)';
     ctx.lineWidth = 1;
 
     const startX = -camera.x % gridSize;
@@ -224,8 +224,10 @@ const GameCanvas = () => {
 
     ctx.save();
     ctx.fillStyle = orb.color;
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 128, 0, 0.8)';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = 'rgba(255, 128, 0, 0.3)';
+    ctx.shadowBlur = 8;
     
     ctx.beginPath();
     ctx.arc(screenX, screenY, orb.size, 0, Math.PI * 2);
@@ -233,10 +235,12 @@ const GameCanvas = () => {
     ctx.stroke();
 
     // Draw type indicator
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.max(8, orb.size / 2)}px Arial`;
+    ctx.fillStyle = '#1f2124';
+    ctx.font = `bold ${Math.max(8, orb.size / 2)}px Inter, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+    ctx.shadowBlur = 2;
     
     const typeSymbol = {
       single: '🎬',
@@ -254,9 +258,11 @@ const GameCanvas = () => {
     const screenY = target.y - camera.y + canvas.height / 2;
 
     ctx.save();
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = '#FF8000';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 4]);
+    ctx.shadowColor = 'rgba(255, 128, 0, 0.5)';
+    ctx.shadowBlur = 10;
     
     ctx.beginPath();
     ctx.arc(screenX, screenY, 15, 0, Math.PI * 2);
@@ -281,42 +287,49 @@ const GameCanvas = () => {
     ctx.fillStyle = player.color || '#3498db';
     ctx.fill();
 
-    // Draw border
-    ctx.strokeStyle = isCurrentPlayer ? '#ffd700' : 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = isCurrentPlayer ? 3 : 2;
+    // Draw border with glassy effect
+    ctx.strokeStyle = isCurrentPlayer ? '#FF8000' : 'rgba(31, 33, 36, 0.4)';
+    ctx.lineWidth = isCurrentPlayer ? 4 : 2;
+    ctx.shadowColor = isCurrentPlayer ? 'rgba(255, 128, 0, 0.5)' : 'rgba(31, 33, 36, 0.2)';
+    ctx.shadowBlur = isCurrentPlayer ? 15 : 5;
     ctx.stroke();
-
-    // Draw glow effect
+    
+    // Additional inner glow for current player
     if (isCurrentPlayer) {
-      ctx.shadowColor = '#ffd700';
-      ctx.shadowBlur = 20;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(screenX, screenY, player.size / 2, 0, 2 * Math.PI);
+      ctx.arc(screenX, screenY, player.size / 2 - 2, 0, 2 * Math.PI);
       ctx.stroke();
-      ctx.shadowBlur = 0;
     }
+    ctx.shadowBlur = 0;
 
-    // Draw username
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${Math.max(12, player.size / 4)}px Arial`;
+    // Draw username with better contrast
+    ctx.fillStyle = '#1f2124';
+    ctx.font = `bold ${Math.max(12, player.size / 4)}px Inter, Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.lineWidth = 3;
     ctx.strokeText(player.username, screenX, screenY);
     ctx.fillText(player.username, screenX, screenY);
 
-    // Draw points and absorption count
+    // Draw points and absorption count with modern styling
     if (player.points !== undefined) {
-      ctx.fillStyle = '#00ff00';
-      ctx.font = `bold ${Math.max(8, player.size / 8)}px Arial`;
+      ctx.fillStyle = '#10b981';
+      ctx.font = `bold ${Math.max(8, player.size / 8)}px Inter, Arial`;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 2;
       ctx.strokeText(`${player.points}pts`, screenX, screenY - player.size / 2 - 5);
       ctx.fillText(`${player.points}pts`, screenX, screenY - player.size / 2 - 5);
     }
     
     if (player.absorptions > 0) {
-      ctx.fillStyle = '#ffd700';
-      ctx.font = `bold ${Math.max(10, player.size / 6)}px Arial`;
+      ctx.fillStyle = '#FF8000';
+      ctx.font = `bold ${Math.max(10, player.size / 6)}px Inter, Arial`;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 2;
       ctx.strokeText(`${player.absorptions}`, screenX, screenY + player.size / 3);
       ctx.fillText(`${player.absorptions}`, screenX, screenY + player.size / 3);
     }
@@ -396,7 +409,7 @@ const GameCanvas = () => {
   }
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div className="game-container">
       <canvas
         ref={canvasRef}
         className="game-canvas"
@@ -423,59 +436,66 @@ const GameCanvas = () => {
         {/* Top Bar */}
         <div className="top-bar">
           <div className="stats-panel">
-            <h3 style={{ margin: '0 0 10px 0' }}>Your Stats</h3>
-            <div>Size: {gameState.currentPlayer.size}</div>
-            <div>Absorptions: {gameState.currentPlayer.absorptions || 0}</div>
-            <div>Position: ({Math.round(gameState.currentPlayer.position.x)}, {Math.round(gameState.currentPlayer.position.y)})</div>
+            <h3>Your Stats</h3>
+            <div className="stat-item">
+              <span>Size:</span>
+              <strong>{gameState.currentPlayer.size}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Absorptions:</span>
+              <strong>{gameState.currentPlayer.absorptions || 0}</strong>
+            </div>
+            <div className="stat-item">
+              <span>Position:</span>
+              <strong>({Math.round(gameState.currentPlayer.position.x)}, {Math.round(gameState.currentPlayer.position.y)})</strong>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div className="game-actions">
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary dashboard-btn"
               onClick={handleClickImportFiveStar}
-              style={{ width: 'auto', padding: '8px 16px' }}
             >
               Import 5★ CSV
             </button>
             <button
-              className="btn btn-secondary"
+              className="btn btn-secondary dashboard-btn"
               onClick={handleClickImportWatchlist}
-              style={{ width: 'auto', padding: '8px 16px' }}
             >
               Import Watchlist CSV
             </button>
             <button 
-              className="btn btn-secondary"
+              className="btn btn-secondary dashboard-btn"
               onClick={() => navigate('/profile')}
-              style={{ width: 'auto', padding: '8px 16px' }}
             >
               Profile
             </button>
             <button 
-              className="btn btn-danger"
+              className="btn btn-danger dashboard-btn"
               onClick={handleLeaveGame}
-              style={{ width: 'auto', padding: '8px 16px' }}
             >
               Leave Game
             </button>
           </div>
 
           <div className="leaderboard">
-            <h3 style={{ margin: '0 0 10px 0' }}>Players ({gameState.players.length})</h3>
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+            <h3>Players ({gameState.players.length})</h3>
+            <div className="leaderboard-list">
               {gameState.players
                 .sort((a, b) => b.size - a.size)
                 .slice(0, 10)
                 .map((player, index) => (
-                  <div key={player.id} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    padding: '4px 0',
-                    color: player.id === gameState.currentPlayer.id ? '#ffd700' : 'white',
-                    borderBottom: index < 9 ? '1px solid rgba(255,255,255,0.1)' : 'none'
-                  }}>
-                    <span>#{index + 1} {player.username}</span>
-                    <span>{player.size}</span>
+                  <div 
+                    key={player.id} 
+                    className={`leaderboard-item ${player.id === gameState.currentPlayer.id ? 'current-user' : ''}`}
+                  >
+                    <div className="player-info">
+                      <span className={`rank ${index < 3 ? 'top-three' : ''}`}>
+                        #{index + 1}
+                      </span>
+                      <span className="username">{player.username}</span>
+                    </div>
+                    <span className="rating">{player.size}</span>
                   </div>
                 ))}
             </div>
@@ -486,52 +506,38 @@ const GameCanvas = () => {
 
         {/* Orb detail popup */}
         {selectedOrb && (
-          <div
-            style={{
-              position: 'absolute',
-              right: 20,
-              top: 80,
-              width: 360,
-              background: 'rgba(0,0,0,0.9)',
-              color: 'white',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 12,
-              padding: 16,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-              zIndex: 10
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ fontWeight: 'bold', fontSize: 18 }}>
+          <div className="orb-detail-popup">
+            <div className="popup-header">
+              <div className="popup-title">
                 Orb Details {selectedOrb.type === 'boss' ? '👑' : selectedOrb.type === 'list' ? '📋' : selectedOrb.type === 'bundle' ? '📦' : '🎬'}
               </div>
-              <button className="btn btn-secondary" onClick={() => setSelectedOrb(null)} style={{ padding: '4px 8px' }}>Close</button>
+              <button className="btn btn-secondary dashboard-btn" onClick={() => setSelectedOrb(null)}>Close</button>
             </div>
-            <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>
+            <div className="popup-meta">
               Type: {selectedOrb.type} • Value: {selectedOrb.pointValue} pts • Size: {selectedOrb.size}
             </div>
-            <div style={{ maxHeight: 240, overflowY: 'auto', paddingRight: 6 }}>
+            <div className="popup-content">
               {(selectedOrb.movies || []).length === 0 ? (
-                <div style={{ opacity: 0.8 }}>No movies attached.</div>
+                <div className="empty-movies">No movies attached.</div>
               ) : (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <ul className="movie-list">
                   {selectedOrb.movies.map((m, idx) => (
-                    <li key={`${m.title}-${m.year}-${idx}`} style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div style={{ fontWeight: 600 }}>
+                    <li key={`${m.title}-${m.year}-${idx}`} className="movie-list-item">
+                      <div className="movie-title">
                         {m.title} {m.year ? `(${m.year})` : ''} {m.watchCount ? `• x${m.watchCount}` : ''}
                       </div>
-                      {m.director && <div style={{ fontSize: 12, opacity: 0.85 }}>Dir. {m.director}</div>}
+                      {m.director && <div className="movie-director">Dir. {m.director}</div>}
                       {m.letterboxdUrl && (
-                        <a href={m.letterboxdUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#4da3ff' }}>Letterboxd</a>
+                        <a href={m.letterboxdUrl} target="_blank" rel="noreferrer" className="letterboxd-link">Letterboxd</a>
                       )}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <div className="popup-actions">
               <button
-                className="btn btn-primary"
+                className="btn"
                 onClick={() => {
                   setTargetPos({ x: selectedOrb.position.x, y: selectedOrb.position.y });
                   toast('Moving to orb...', { icon: '➡️', duration: 1000 });
@@ -550,17 +556,8 @@ const GameCanvas = () => {
         )}
 
         {/* Instructions */}
-        <div style={{
-          position: 'absolute',
-          bottom: '20px',
-          left: '20px',
-          background: 'rgba(0,0,0,0.8)',
-          color: 'white',
-          padding: '15px',
-          borderRadius: '10px',
-          fontSize: '14px'
-        }}>
-          <div><strong>Controls:</strong></div>
+        <div className="game-instructions">
+          <div className="instructions-title">Controls:</div>
           <div>• Right-click to move</div>
           <div>• Touch players to attempt absorption</div>
           <div>• Collect movie orbs for points</div>

@@ -77,6 +77,141 @@ router.post('/import-letterboxd-watchlist', auth, upload.single('csvFile'), asyn
   }
 });
 
+// Add or update a watched movie (any rating 1..5)
+router.post('/watched-movies', auth, async (req, res) => {
+  try {
+    const { title, year, director, rating, letterboxdUrl } = req.body;
+
+    if (!title || !year) {
+      return res.status(400).json({ message: 'Title and year are required' });
+    }
+
+    // Normalize rating: default to 1 if missing/invalid, clamp 1..5
+    let r = parseInt(rating, 10);
+    if (!(r >= 1 && r <= 5)) r = 1;
+
+    const user = await User.findById(req.userId);
+
+    // Upsert into watchedMovies
+    const keyMatch = (m) => m.title === title && m.year === Number(year);
+    const idx = (user.watchedMovies || []).findIndex(keyMatch);
+    const movieDoc = {
+      title,
+      year: Number(year),
+      director,
+      letterboxdUrl,
+      rating: r
+    };
+    if (idx >= 0) {
+      // Update existing watched record
+      user.watchedMovies[idx] = { ...user.watchedMovies[idx]._doc, ...movieDoc };
+    } else {
+      user.watchedMovies.push(movieDoc);
+    }
+
+    // Keep fiveStarMovies in sync
+    const fsIdx = (user.fiveStarMovies || []).findIndex(keyMatch);
+    if (r === 5) {
+      if (fsIdx >= 0) {
+        user.fiveStarMovies[fsIdx] = { ...user.fiveStarMovies[fsIdx]._doc, ...movieDoc };
+      } else {
+        user.fiveStarMovies.push(movieDoc);
+      }
+    } else if (fsIdx >= 0) {
+      // Remove from fiveStar if downgraded below 5
+      user.fiveStarMovies.splice(fsIdx, 1);
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Watched movie saved',
+      movie: movieDoc,
+      totals: {
+        watched: user.watchedMovies.length,
+        fiveStar: user.fiveStarMovies.length
+      }
+    });
+  } catch (error) {
+    console.error('Add watched movie error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Import generic watched movies CSV (rating optional)
+router.post('/import-watched', auth, upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No CSV file uploaded' });
+    }
+
+    const filePath = req.file.path;
+    const imported = [];
+
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => {
+        const title = row.Name || row.Title || row.name || row.title;
+        const year = parseInt(row.Year || row.year || row.Released_Year || row.released_year);
+        const uri = row['Letterboxd URI'] || row['Letterboxd Url'] || row.letterboxdUrl || row.url;
+        let r = parseFloat(row.Rating || row.rating);
+        if (!(r >= 1 && r <= 5)) r = 1; // default to 1 when missing/unrated
+        if (title && year) {
+          imported.push({ title, year, letterboxdUrl: uri || undefined, rating: Math.round(r) });
+        }
+      })
+      .on('end', async () => {
+        try {
+          const user = await User.findById(req.userId);
+
+          // Deduplicate and upsert by title-year
+          const byKey = new Map();
+          for (const m of imported) {
+            const k = `${m.title}-${m.year}`;
+            if (!byKey.has(k)) byKey.set(k, m);
+          }
+
+          const existing = new Map((user.watchedMovies || []).map(m => [`${m.title}-${m.year}`, m]));
+          for (const [k, m] of byKey) {
+            if (existing.has(k)) {
+              const prev = existing.get(k);
+              prev.rating = m.rating; // update rating
+              if (m.letterboxdUrl) prev.letterboxdUrl = m.letterboxdUrl;
+              if (m.director) prev.director = m.director;
+            } else {
+              user.watchedMovies.push(m);
+            }
+          }
+
+          // Rebuild fiveStarMovies from watchedMovies
+          user.fiveStarMovies = (user.watchedMovies || []).filter(m => m.rating === 5);
+
+          await user.save();
+          fs.unlinkSync(filePath);
+
+          res.json({
+            message: `Imported ${byKey.size} watched movies`,
+            watchedCount: user.watchedMovies.length,
+            fiveStarCount: user.fiveStarMovies.length,
+            sample: Array.from(byKey.values()).slice(0, 10)
+          });
+        } catch (error) {
+          console.error('Database update error (import-watched):', error);
+          fs.unlinkSync(filePath);
+          res.status(500).json({ message: 'Error updating user watched movies' });
+        }
+      })
+      .on('error', (error) => {
+        console.error('CSV parsing error (import-watched):', error);
+        fs.unlinkSync(filePath);
+        res.status(400).json({ message: 'Error parsing CSV file' });
+      });
+  } catch (error) {
+    console.error('Import watched error:', error);
+    res.status(500).json({ message: 'Server error during watched import' });
+  }
+});
+
 // Import Letterboxd data from CSV (ratings/diary export)
 router.post('/import-letterboxd', auth, upload.single('csvFile'), async (req, res) => {
   try {
