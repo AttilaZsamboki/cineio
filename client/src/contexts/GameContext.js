@@ -214,7 +214,7 @@ export const GameProvider = ({ children }) => {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [gameState.currentPlayer]);
 
   const joinGame = (sessionId, userId, username) => {
     if (socket) {

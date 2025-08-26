@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
-  const { user, updateUser, getCurrentUser } = useAuth();
+  const { user, getCurrentUser } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [loadingWatched, setLoadingWatched] = useState(false);
@@ -53,7 +53,7 @@ const Profile = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, updateUser]);
+  }, [getCurrentUser]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

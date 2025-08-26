@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,7 +38,7 @@ const GameCanvas = () => {
     return () => {
       leaveGame();
     };
-  }, [sessionId, user]);
+  }, [sessionId, user, joinGame, leaveGame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,8 +94,31 @@ const GameCanvas = () => {
         y: gameState.currentPlayer.position.y
       });
     }
-  }, [gameState.currentPlayer?.position]);
+  }, [gameState.currentPlayer?.position, gameState.currentPlayer]);
   console.log(gameState.movieOrbs)
+
+  const drawGrid = useCallback((ctx, canvas) => {
+    const gridSize = 50;
+    ctx.strokeStyle = 'rgba(31, 33, 36, 0.1)';
+    ctx.lineWidth = 1;
+
+    const startX = -camera.x % gridSize;
+    const startY = -camera.y % gridSize;
+
+    for (let x = startX; x < canvas.width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    for (let y = startY; y < canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+  }, [camera]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -133,7 +156,7 @@ const GameCanvas = () => {
       drawPlayer(ctx, gameState.currentPlayer, camera, canvas, true);
     }
 
-  }, [gameState.players, gameState.currentPlayer, camera, targetPos, gameState.movieOrbs]);
+  }, [gameState.players, gameState.currentPlayer, camera, targetPos, gameState.movieOrbs, drawGrid]);
 
   // MOBA-style movement loop
   useEffect(() => {
@@ -189,28 +212,6 @@ const GameCanvas = () => {
     };
   }, [gameState.currentPlayer, movePlayer]);
 
-  const drawGrid = (ctx, canvas) => {
-    const gridSize = 50;
-    ctx.strokeStyle = 'rgba(31, 33, 36, 0.1)';
-    ctx.lineWidth = 1;
-
-    const startX = -camera.x % gridSize;
-    const startY = -camera.y % gridSize;
-
-    for (let x = startX; x < canvas.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-
-    for (let y = startY; y < canvas.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-  };
 
   const drawMovieOrb = (ctx, orb, camera, canvas) => {
     const screenX = orb.position.x - camera.x + canvas.width / 2;

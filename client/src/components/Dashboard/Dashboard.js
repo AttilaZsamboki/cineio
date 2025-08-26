@@ -41,7 +41,6 @@ const Dashboard = () => {
   const handleCreateSession = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/game/create-session', newSession);
       toast.success('Game session created!');
       setShowCreateSession(false);
       setNewSession({ name: '', duration: 7, maxPlayers: 50 });
