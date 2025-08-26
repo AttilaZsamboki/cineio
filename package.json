@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "client": "cd client && npm start"
+    "client": "cd client && npm start",
+    "build": "npm --prefix client ci && npm --prefix client run build",
+    "postinstall": "npm --prefix client ci && npm --prefix client run build"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",

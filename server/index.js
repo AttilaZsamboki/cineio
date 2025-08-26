@@ -12,16 +12,29 @@ const userRoutes = require('./routes/user');
 const GameManager = require('./game/GameManager');
 
 const app = express();
+// Behind reverse proxies (e.g., Coolify/Traefik)
+app.set('trust proxy', 1);
+
+// Configure allowed origins for CORS and Socket.IO from env (comma-separated)
+const corsOrigins = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim())
+  : undefined; // undefined => reflect request origin if credentials not used
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
+    // allow list from env or allow all in absence (suitable when front and back share domain)
+    origin: corsOrigins || true,
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: corsOrigins || undefined,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '../client/build')));
 
