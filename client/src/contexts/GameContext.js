@@ -29,7 +29,12 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(); // same-origin
+    const newSocket = io('/', {
+      // Force WebSocket to avoid excessive HTTP long-polling requests behind proxies
+      transports: ['websocket'],
+      withCredentials: true,
+      // keep default path '/socket.io' which matches server
+    }); // same-origin
     
     newSocket.on('connect', () => {
       setGameState(prev => ({ ...prev, connected: true }));
