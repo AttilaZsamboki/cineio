@@ -29,7 +29,7 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io(); // same-origin
     
     newSocket.on('connect', () => {
       setGameState(prev => ({ ...prev, connected: true }));
