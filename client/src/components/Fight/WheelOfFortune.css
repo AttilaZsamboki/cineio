@@ -1,0 +1,116 @@
+.wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  color: white;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.wheel-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.wheel-header h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.5em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.wheel-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9em;
+}
+
+.wheel-canvas-container {
+  position: relative;
+  margin: 20px 0;
+}
+
+.wheel-canvas {
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  transition: transform 3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.wheel-canvas.spinning {
+  transition: transform 3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.wheel-controls {
+  margin: 20px 0;
+}
+
+.spin-button {
+  background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+  border: none;
+  color: white;
+  padding: 15px 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.spin-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(255, 107, 107, 0.6);
+}
+
+.spin-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spin-button.spinning {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.selected-movie {
+  text-align: center;
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.selected-movie h4 {
+  margin: 0 0 10px 0;
+  color: #FFD700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.movie-info {
+  font-size: 1.1em;
+}
+
+.movie-info strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 1.2em;
+}
+
+.director {
+  font-size: 0.9em;
+  opacity: 0.8;
+  font-style: italic;
+}

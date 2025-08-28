@@ -75,7 +75,8 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -103,6 +104,75 @@ body::before {
 code {
   font-family: 'JetBrains Mono', 'Fira Code', source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+/* Fighting System Styles */
+.challenge-btn {
+  background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+  border: none;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.8em;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+}
+
+.challenge-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+}
+
+.fight-notifications, .active-fights {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(30, 60, 114, 0.95);
+  border-radius: 10px;
+  padding: 15px;
+  color: white;
+  max-width: 300px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 100;
+}
+
+.active-fights {
+  top: 180px;
+}
+
+.fight-notifications h4, .active-fights h4 {
+  margin: 0 0 10px 0;
+  font-size: 1em;
+  color: #FFD700;
+}
+
+.fight-notification, .active-fight {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.respond-btn, .continue-btn {
+  background: linear-gradient(45deg, #4CAF50, #45a049);
+  border: none;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 0.8em;
+  transition: all 0.3s ease;
+}
+
+.respond-btn:hover, .continue-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
 }
 
 #root {

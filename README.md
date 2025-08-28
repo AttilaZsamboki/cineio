@@ -47,11 +47,12 @@ A multiplayer agar.io-style game for movie enthusiasts where players absorb othe
    - Install MongoDB locally or use MongoDB Atlas
    - Default connection: `mongodb://localhost:27017/cinephile-agar`
 
-3. **Environment Variables (Optional):**
-   Create a `.env` file in the server directory:
+3. **Environment Variables:**
+   Create a `.env` file in the root directory (copy from `.env.example`):
    ```
    JWT_SECRET=your-secret-key-here
-   MONGODB_URI=mongodb://localhost:27017/cinephile-agar
+   MONGODB_URI=mongodb://localhost:27017/cineio
+   OPENAI_API_KEY=sk-your_openai_api_key_here
    PORT=5000
    ```
 

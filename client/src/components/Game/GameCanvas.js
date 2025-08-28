@@ -1,9 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import axios from 'axios';
+import axios from '../../utils/axiosConfig';
+import io from 'socket.io-client';
+import { toast } from 'react-hot-toast';
+import FightModal from '../Fight/FightModal';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGame } from '../../contexts/GameContext';
-import toast from 'react-hot-toast';
 
 const GameCanvas = () => {
   const canvasRef = useRef(null);
@@ -19,6 +21,16 @@ const GameCanvas = () => {
   // Touch-to-absorb: no click UI required
   const watchlistInputRef = useRef(null);
   const fiveStarInputRef = useRef(null);
+  
+  // Fighting system state
+  const [fightModal, setFightModal] = useState({
+    isOpen: false,
+    mode: 'challenge', // 'challenge', 'respond', 'active'
+    opponent: null,
+    fightData: null
+  });
+  const [pendingFights, setPendingFights] = useState([]);
+  const [activeFights, setActiveFights] = useState([]);
 
   // Refs to avoid stale closures inside RAF loop
   const targetPosRef = useRef(targetPos);
@@ -34,6 +46,9 @@ const GameCanvas = () => {
   useEffect(() => {
     if (user && sessionId) {
       joinGame(sessionId, user._id || user.id, user.username);
+      
+      // Load pending and active fights
+      loadFights();
     }
 
     return () => {
@@ -41,6 +56,20 @@ const GameCanvas = () => {
     };
   // eslint-disable-next-line
   }, [sessionId, user]);
+
+  // Load fights data
+  const loadFights = async () => {
+    try {
+      const [pendingRes, activeRes] = await Promise.all([
+        axios.get('/api/fight/pending'),
+        axios.get('/api/fight/active')
+      ]);
+      setPendingFights(pendingRes.data);
+      setActiveFights(activeRes.data);
+    } catch (error) {
+      console.error('Error loading fights:', error);
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -126,6 +155,74 @@ const GameCanvas = () => {
       canvas.removeEventListener('touchmove', handleTouch);
     };
   }, [gameState.currentPlayer, camera, gameState.players, gameState.movieOrbs]);
+
+  // Socket event listeners for fighting system
+  useEffect(() => {
+    if (!gameState.socket) return;
+
+    const handleFightChallengeAvailable = (data) => {
+      toast(`🥊 Fight available with ${data.opponent.username}!`, {
+        duration: 5000,
+        icon: '⚔️'
+      });
+    };
+
+    const handleFightChallengeReceived = (data) => {
+      toast(`${data.challenger.username} challenges you to a fight!`, {
+        duration: 8000,
+        icon: '🥊'
+      });
+      
+      // Show fight modal for response
+      setFightModal({
+        isOpen: true,
+        mode: 'respond',
+        opponent: data.challenger,
+        fightData: data
+      });
+      
+      loadFights(); // Refresh fights list
+    };
+
+    const handleFightAccepted = (data) => {
+      toast(`${data.defender.username} accepted your challenge!`, {
+        duration: 5000,
+        icon: '✅'
+      });
+      
+      setFightModal({
+        isOpen: true,
+        mode: 'active',
+        opponent: data.defender,
+        fightData: data.fight
+      });
+      
+      loadFights();
+    };
+
+    const handleFightCompleted = (data) => {
+      const isWinner = data.winnerId === (user._id || user.id);
+      toast(
+        isWinner ? `🎉 You won the fight against ${data.opponent.username}!` : 
+                  `😔 You lost the fight against ${data.opponent.username}`,
+        { duration: 6000 }
+      );
+      
+      loadFights();
+    };
+
+    gameState.socket.on('fight-challenge-available', handleFightChallengeAvailable);
+    gameState.socket.on('fight-challenge-received', handleFightChallengeReceived);
+    gameState.socket.on('fight-accepted', handleFightAccepted);
+    gameState.socket.on('fight-completed', handleFightCompleted);
+
+    return () => {
+      gameState.socket.off('fight-challenge-available', handleFightChallengeAvailable);
+      gameState.socket.off('fight-challenge-received', handleFightChallengeReceived);
+      gameState.socket.off('fight-accepted', handleFightAccepted);
+      gameState.socket.off('fight-completed', handleFightCompleted);
+    };
+  }, [gameState.socket, user, loadFights]);
 
   useEffect(() => {
     // Update camera to follow current player
@@ -430,6 +527,26 @@ const GameCanvas = () => {
     navigate('/dashboard');
   };
 
+  // Fight challenge handler
+  const handleChallengePlayer = (opponent) => {
+    setFightModal({
+      isOpen: true,
+      mode: 'challenge',
+      opponent,
+      fightData: null
+    });
+  };
+
+  // Close fight modal
+  const closeFightModal = () => {
+    setFightModal({
+      isOpen: false,
+      mode: 'challenge',
+      opponent: null,
+      fightData: null
+    });
+  };
+
   if (!gameState.connected) {
     return (
       <div className="loading-screen">
@@ -537,6 +654,18 @@ const GameCanvas = () => {
                         #{index + 1}
                       </span>
                       <span className="username">{player.username}</span>
+                      {player.id !== gameState.currentPlayer.id && (
+                        <button
+                          className="challenge-btn"
+                          onClick={() => handleChallengePlayer({
+                            id: player.userId,
+                            username: player.username
+                          })}
+                          title="Challenge to fight"
+                        >
+                          ⚔️
+                        </button>
+                      )}
                     </div>
                     <span className="rating">{player.size}</span>
                   </div>
@@ -615,7 +744,78 @@ const GameCanvas = () => {
         >
           {hudOpen ? 'Hide HUD' : 'Show HUD'}
         </button>
+
+        {/* Fight notifications */}
+        {pendingFights.length > 0 && (
+          <div className="fight-notifications">
+            <h4>⚔️ Pending Fights ({pendingFights.length})</h4>
+            {pendingFights.slice(0, 3).map(fight => (
+              <div key={fight._id} className="fight-notification">
+                <span>
+                  {fight.challengerId._id === (user._id || user.id) 
+                    ? `Challenge sent to ${fight.defenderId.username}`
+                    : `${fight.challengerId.username} challenges you`
+                  }
+                </span>
+                {fight.defenderId._id === (user._id || user.id) && (
+                  <button
+                    className="respond-btn"
+                    onClick={() => setFightModal({
+                      isOpen: true,
+                      mode: 'respond',
+                      opponent: fight.challengerId,
+                      fightData: fight
+                    })}
+                  >
+                    Respond
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Active fights */}
+        {activeFights.length > 0 && (
+          <div className="active-fights">
+            <h4>🥊 Active Fights ({activeFights.length})</h4>
+            {activeFights.slice(0, 2).map(fight => (
+              <div key={fight._id} className="active-fight">
+                <span>
+                  vs {fight.challengerId === (user._id || user.id) 
+                    ? fight.defenderId.username 
+                    : fight.challengerId.username
+                  }
+                </span>
+                <button
+                  className="continue-btn"
+                  onClick={() => setFightModal({
+                    isOpen: true,
+                    mode: 'active',
+                    opponent: fight.challengerId === (user._id || user.id) 
+                      ? fight.defenderId 
+                      : fight.challengerId,
+                    fightData: fight
+                  })}
+                >
+                  Continue
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Fight Modal */}
+      <FightModal
+        isOpen={fightModal.isOpen}
+        onClose={closeFightModal}
+        opponent={fightModal.opponent}
+        sessionId={sessionId}
+        user={user}
+        mode={fightModal.mode}
+        fightData={fightModal.fightData}
+      />
     </div>
   );
 };

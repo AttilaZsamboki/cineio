@@ -1,5 +1,6 @@
 const GameSession = require('../models/GameSession');
 const User = require('../models/User');
+const Fight = require('../models/Fight');
 
 class GameManager {
   constructor(io) {
@@ -61,6 +62,7 @@ class GameManager {
         sessionId,
         player: {
           id: player._id,
+          userId: player.userId,
           username: player.username,
           position: player.position,
           size: player.size,
@@ -85,7 +87,8 @@ class GameManager {
           position: player.position,
           size: player.size,
           color: player.color,
-          points: player.points
+          points: player.points,
+          userId: player.userId,
         }
       });
 
@@ -244,6 +247,61 @@ class GameManager {
                   this.io.to(target.socketId).emit('battle-missing', {
                     opponent: player.username,
                     missingMovies: targetMissing
+                  });
+                }
+                break;
+              }
+
+              // NEW: If both can absorb, offer fight challenge instead of immediate absorption
+              if (moverCanAbsorb && targetCanAbsorb) {
+                // Generate fight movie pools if needed
+                if (moverUser.shouldRegenerateFightPool()) {
+                  moverUser.generateFightMoviePool();
+                  await moverUser.save();
+                }
+                if (targetUser.shouldRegenerateFightPool()) {
+                  targetUser.generateFightMoviePool();
+                  await targetUser.save();
+                }
+
+                // Apply cooldowns to prevent spam
+                player.battleCooldownUntil = new Date(nowTs + cooldownMs);
+                target.battleCooldownUntil = new Date(nowTs + cooldownMs);
+                await GameSession.updateOne(
+                  { sessionId },
+                  {
+                    $set: {
+                      'players.$[p1].battleCooldownUntil': player.battleCooldownUntil,
+                      'players.$[p2].battleCooldownUntil': target.battleCooldownUntil
+                    }
+                  },
+                  {
+                    arrayFilters: [
+                      { 'p1._id': player._id },
+                      { 'p2._id': target._id }
+                    ]
+                  }
+                );
+
+                // Offer fight challenge to both players
+                if (player.socketId) {
+                  this.io.to(player.socketId).emit('fight-challenge-available', {
+                    opponent: {
+                      id: target.userId,
+                      username: target.username
+                    },
+                    canChallenge: true,
+                    moviePool: targetUser.fightMoviePool || []
+                  });
+                }
+                if (target.socketId) {
+                  this.io.to(target.socketId).emit('fight-challenge-available', {
+                    opponent: {
+                      id: player.userId,
+                      username: player.username
+                    },
+                    canChallenge: true,
+                    moviePool: moverUser.fightMoviePool || []
                   });
                 }
                 break;
@@ -535,6 +593,7 @@ class GameManager {
 
       const activePlayers = gameSession.getActivePlayers().map(player => ({
         id: player._id,
+        userId: player.userId,
         username: player.username,
         position: player.position,
         size: player.size,

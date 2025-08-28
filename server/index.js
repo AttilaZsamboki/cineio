@@ -9,6 +9,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
 const userRoutes = require('./routes/user');
+const fightRoutes = require('./routes/fight');
 const GameManager = require('./game/GameManager');
 
 const app = express();
@@ -54,6 +55,7 @@ db.once('open', () => {
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/fight', fightRoutes);
 
 // Initialize game manager
 const gameManager = new GameManager(io);
