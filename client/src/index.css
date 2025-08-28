@@ -4,6 +4,64 @@
   box-sizing: border-box;
 }
 
+/* HUD toggle button for mobile */
+.hud-toggle {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 1200;
+  background: rgba(31, 33, 36, 0.9);
+  color: var(--primary-white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 10px 14px;
+  font-size: 14px;
+  box-shadow: var(--glass-shadow);
+}
+
+/* Mobile-specific compact HUD */
+@media (max-width: 768px) {
+  /* Hide the heavy top bar by default; reveal when toggled */
+  .top-bar {
+    position: absolute;
+    top: 64px;
+    left: 12px;
+    right: 12px;
+    display: none;
+  }
+  .top-bar.open { display: block; }
+
+  .stats-panel, .leaderboard {
+    width: 100%;
+    max-height: 40vh;
+    overflow: auto;
+  }
+
+  /* Compact orb popup to avoid covering full screen */
+  .orb-detail-popup {
+    left: 12px;
+    right: 12px;
+    width: auto;
+    top: auto;
+    bottom: 84px;
+    max-height: 45vh;
+  }
+
+  /* Place instructions above the bottom controls */
+  .game-instructions {
+    left: 12px;
+    right: 12px;
+    bottom: 84px;
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .game-actions .btn,
+  .orb-detail-popup .btn {
+    padding: 10px 12px;
+  }
+}
+
 :root {
   --primary-white: #ffffff;
   --secondary-dark: #1f2124;
@@ -1071,6 +1129,11 @@ code {
   }
   
   .top-bar {
+    display: none;
+  }
+  
+  .top-bar.open {
+    display: flex;
     flex-direction: column;
     gap: 16px;
     padding: 16px;

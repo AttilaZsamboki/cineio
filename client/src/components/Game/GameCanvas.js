@@ -15,6 +15,7 @@ const GameCanvas = () => {
   const [camera, setCamera] = useState({ x: 0, y: 0 });
   const [targetPos, setTargetPos] = useState(null); // MOBA-style target position
   const [selectedOrb, setSelectedOrb] = useState(null); // Orb detail popup
+  const [hudOpen, setHudOpen] = useState(false); // Mobile HUD toggle
   // Touch-to-absorb: no click UI required
   const watchlistInputRef = useRef(null);
   const fiveStarInputRef = useRef(null);
@@ -77,13 +78,52 @@ const GameCanvas = () => {
       setSelectedOrb(hit);
     };
 
+    // Touch controls: tap to move, tap on orb to open details, drag to update target
+    const handleTouch = (e) => {
+      // prevent page scroll while controlling
+      e.preventDefault();
+      const touch = e.touches[0] || e.changedTouches[0];
+      if (!touch) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      const cam = cameraRef.current || camera;
+      const worldX = x + cam.x - canvas.width / 2;
+      const worldY = y + cam.y - canvas.height / 2;
+
+      // If tapping on an orb, open details; otherwise set move target
+      let hit = null;
+      for (const orb of gameState.movieOrbs) {
+        const screenX = orb.position.x - cam.x + canvas.width / 2;
+        const screenY = orb.position.y - cam.y + canvas.height / 2;
+        const dx = x - screenX;
+        const dy = y - screenY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= orb.size) { hit = orb; break; }
+      }
+      if (e.type === 'touchstart') {
+        if (hit) {
+          setSelectedOrb(hit);
+        } else {
+          setSelectedOrb(null);
+          setTargetPos({ x: worldX, y: worldY });
+        }
+      } else if (e.type === 'touchmove') {
+        setTargetPos({ x: worldX, y: worldY });
+      }
+    };
+
     canvas.addEventListener('contextmenu', handleRightClick);
     canvas.addEventListener('click', handleLeftClick);
+    canvas.addEventListener('touchstart', handleTouch, { passive: false });
+    canvas.addEventListener('touchmove', handleTouch, { passive: false });
     // Left click removed: absorption is touch-based now
 
     return () => {
       canvas.removeEventListener('contextmenu', handleRightClick);
       canvas.removeEventListener('click', handleLeftClick);
+      canvas.removeEventListener('touchstart', handleTouch);
+      canvas.removeEventListener('touchmove', handleTouch);
     };
   }, [gameState.currentPlayer, camera, gameState.players, gameState.movieOrbs]);
 
@@ -437,7 +477,7 @@ const GameCanvas = () => {
           onChange={handleWatchlistFileChange}
         />
         {/* Top Bar */}
-        <div className="top-bar">
+        <div className={`top-bar ${hudOpen ? 'open' : ''}`}>
           <div className="stats-panel">
             <h3>Your Stats</h3>
             <div className="stat-item">
@@ -561,11 +601,20 @@ const GameCanvas = () => {
         {/* Instructions */}
         <div className="game-instructions">
           <div className="instructions-title">Controls:</div>
-          <div>• Right-click to move</div>
-          <div>• Touch players to attempt absorption</div>
+          <div>• Right-click or tap to move</div>
+          <div>• Touch or overlap players to attempt absorption</div>
           <div>• Collect movie orbs for points</div>
           <div>• You can only absorb players whose 5-star movies you've all seen</div>
         </div>
+
+        {/* Mobile HUD toggle */}
+        <button
+          className="hud-toggle"
+          aria-label="Toggle HUD"
+          onClick={() => setHudOpen((v) => !v)}
+        >
+          {hudOpen ? 'Hide HUD' : 'Show HUD'}
+        </button>
       </div>
     </div>
   );
