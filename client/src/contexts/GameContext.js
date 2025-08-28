@@ -29,12 +29,13 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('/', {
-      // Force WebSocket to avoid excessive HTTP long-polling requests behind proxies
+    // In prod (same-origin), use window origin. In dev, override with REACT_APP_SOCKET_URL (e.g., http://localhost:5000)
+    const socketUrl = process.env.REACT_APP_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    const newSocket = io(socketUrl, {
+      path: '/socket.io',
       transports: ['websocket'],
       withCredentials: true,
-      // keep default path '/socket.io' which matches server
-    }); // same-origin
+    });
     
     newSocket.on('connect', () => {
       setGameState(prev => ({ ...prev, connected: true }));
@@ -219,7 +220,8 @@ export const GameProvider = ({ children }) => {
     return () => {
       newSocket.close();
     };
-  }, [gameState.currentPlayer]);
+    // eslint-disable-next-line
+  }, []); // Empty dependency array - run only once on mount
 
   const joinGame = (sessionId, userId, username) => {
     if (socket) {

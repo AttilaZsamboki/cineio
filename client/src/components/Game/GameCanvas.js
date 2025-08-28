@@ -38,7 +38,8 @@ const GameCanvas = () => {
     return () => {
       leaveGame();
     };
-  }, [sessionId, user, joinGame, leaveGame]);
+  // eslint-disable-next-line
+  }, [sessionId, user]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -94,8 +95,8 @@ const GameCanvas = () => {
         y: gameState.currentPlayer.position.y
       });
     }
-  }, [gameState.currentPlayer?.position, gameState.currentPlayer]);
-  console.log(gameState.movieOrbs)
+  // eslint-disable-next-line
+  }, [gameState.currentPlayer?.position]);
 
   const drawGrid = useCallback((ctx, canvas) => {
     const gridSize = 50;
@@ -156,7 +157,8 @@ const GameCanvas = () => {
       drawPlayer(ctx, gameState.currentPlayer, camera, canvas, true);
     }
 
-  }, [gameState.players, gameState.currentPlayer, camera, targetPos, gameState.movieOrbs, drawGrid]);
+  // eslint-disable-next-line
+  }, [gameState.players, gameState.currentPlayer, camera, targetPos, gameState.movieOrbs]);
 
   // MOBA-style movement loop
   useEffect(() => {
